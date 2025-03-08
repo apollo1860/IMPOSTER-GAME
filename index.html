@@ -91,7 +91,6 @@
             imposterIndex = Math.floor(Math.random() * players.length);
             question = questions[Math.floor(Math.random() * questions.length)];
             votes = {};
-
             showQuestion();
         }
 
@@ -163,6 +162,10 @@
             document.getElementById("gameScreen").style.display = "block";
             startRound();
         }
+
+        window.onload = function() {
+            document.getElementById("gameSetup").style.display = "block";
+        };
     </script>
 
 </body>
