@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imposter-Spiel</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        #gameSetup, #gameScreen, #voteScreen, #scoreScreen { display: none; }
+        .player-box { margin: 5px; padding: 10px; border: 1px solid black; display: inline-block; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="gameSetup">
+        <h2>Spieleranzahl wählen & Namen eingeben</h2>
+        <label for="playerCount">Anzahl der Spieler (3-6):</label>
+        <input type="number" id="playerCount" min="3" max="6" value="3">
+        <button onclick="setupPlayers()">Bestätigen</button>
+        <div id="playerInputs"></div>
+        <button id="startGameBtn" onclick="startGame()" class="hidden">Spiel starten</button>
+    </div>
+
+    <div id="gameScreen">
+        <h2 id="currentPlayerName"></h2>
+        <p id="questionDisplay"></p>
+        <button onclick="nextPlayer()">OK</button>
+    </div>
+
+    <div id="voteScreen">
+        <h2>Abstimmung: Wer ist der Imposter?</h2>
+        <div id="voteOptions"></div>
+        <button onclick="revealImposter()">Ergebnisse anzeigen</button>
+    </div>
+
+    <div id="scoreScreen">
+        <h2>Punktestand</h2>
+        <div id="scoreboard"></div>
+        <button onclick="nextRound()">Nächste Runde</button>
+    </div>
+
+    <script>
+        let players = [];
+        let currentPlayerIndex = 0;
+        let imposterIndex;
+        let question;
+        let votes = {};
+        let scores = {};
+        let questions = [
+            "Wie viele Tage kann man eine Pizza noch essen, nachdem sie auf dem Boden lag?",
+            "Wie viele Dates braucht es, bis man jemanden offiziell „Schatz“ nennen kann?",
+            "Wie viele Bier muss man trinken, bevor Karaoke eine gute Idee wird?",
+            "Wie lange sollte man maximal auf eine Antwort in einem Chat warten, bevor man beleidigt ist? (in Minuten)",
+            "Wie viele Tage darf man dieselbe Unterhose tragen, bevor es sozial inakzeptabel wird?"
+        ];
+
+        function setupPlayers() {
+            let count = document.getElementById("playerCount").value;
+            let container = document.getElementById("playerInputs");
+            container.innerHTML = "";
+            players = [];
+            
+            for (let i = 0; i < count; i++) {
+                let input = document.createElement("input");
+                input.type = "text";
+                input.placeholder = "Spieler " + (i + 1);
+                input.id = "player" + i;
+                container.appendChild(input);
+                container.appendChild(document.createElement("br"));
+            }
+            document.getElementById("startGameBtn").classList.remove("hidden");
+        }
+
+        function startGame() {
+            players = [];
+            let count = document.getElementById("playerCount").value;
+            for (let i = 0; i < count; i++) {
+                let name = document.getElementById("player" + i).value.trim();
+                if (name === "") name = "Spieler " + (i + 1);
+                players.push(name);
+                scores[name] = 0;
+            }
+            document.getElementById("gameSetup").style.display = "none";
+            document.getElementById("gameScreen").style.display = "block";
+            startRound();
+        }
+
+        function startRound() {
+            currentPlayerIndex = 0;
+            imposterIndex = Math.floor(Math.random() * players.length);
+            question = questions[Math.floor(Math.random() * questions.length)];
+            votes = {};
+
+            showQuestion();
+        }
+
+        function showQuestion() {
+            let playerName = players[currentPlayerIndex];
+            document.getElementById("currentPlayerName").innerText = "Spieler: " + playerName;
+            document.getElementById("questionDisplay").innerText = (currentPlayerIndex === imposterIndex) 
+                ? "IMPOSTER" 
+                : question;
+        }
+
+        function nextPlayer() {
+            currentPlayerIndex++;
+            if (currentPlayerIndex < players.length) {
+                showQuestion();
+            } else {
+                document.getElementById("gameScreen").style.display = "none";
+                document.getElementById("voteScreen").style.display = "block";
+                setupVoting();
+            }
+        }
+
+        function setupVoting() {
+            let container = document.getElementById("voteOptions");
+            container.innerHTML = "";
+            players.forEach((player, index) => {
+                let button = document.createElement("button");
+                button.innerText = player;
+                button.onclick = () => vote(player);
+                container.appendChild(button);
+            });
+        }
+
+        function vote(player) {
+            votes[player] = (votes[player] || 0) + 1;
+        }
+
+        function revealImposter() {
+            document.getElementById("voteScreen").style.display = "none";
+            document.getElementById("scoreScreen").style.display = "block";
+            let imposterName = players[imposterIndex];
+            let maxVotes = Math.max(...Object.values(votes));
+            let votedOut = Object.keys(votes).find(player => votes[player] === maxVotes);
+            let container = document.getElementById("scoreboard");
+            container.innerHTML = `<p>Der Imposter war: <b>${imposterName}</b></p>`;
+
+            if (votedOut === imposterName) {
+                container.innerHTML += "<p>Der Imposter wurde enttarnt! Alle außer ihm bekommen einen Punkt.</p>";
+                players.forEach(player => { if (player !== imposterName) scores[player]++; });
+            } else {
+                container.innerHTML += "<p>Der Imposter blieb unentdeckt! Er bekommt einen Punkt.</p>";
+                scores[imposterName]++;
+            }
+
+            players.forEach(player => {
+                let div = document.createElement("div");
+                div.innerHTML = `${player}: ${scores[player]} Punkte <button onclick="addPoint('${player}')">+1</button>`;
+                container.appendChild(div);
+            });
+        }
+
+        function addPoint(player) {
+            scores[player]++;
+            revealImposter();
+        }
+
+        function nextRound() {
+            document.getElementById("scoreScreen").style.display = "none";
+            document.getElementById("gameScreen").style.display = "block";
+            startRound();
+        }
+    </script>
+
+</body>
+</html>
