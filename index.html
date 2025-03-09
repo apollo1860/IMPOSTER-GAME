@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Imposter-Spiel</title>
+    <title>Imposter-Game</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; }
-        #gameSetup, #gameScreen, #voteScreen, #scoreScreen { display: none; }
+        #gameSetup, #gameScreen, #voteScreen, #scoreScreen, #endScreen { display: none; }
         .player-box { margin: 5px; padding: 10px; border: 1px solid black; display: inline-block; }
         .hidden { display: none; }
+        .vote-btn { margin: 5px; padding: 10px; border: 1px solid black; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -40,6 +41,12 @@
         <button onclick="nextRound()">Nächste Runde</button>
     </div>
 
+    <div id="endScreen">
+        <h2>Spiel vorbei!</h2>
+        <p>Endstand:</p>
+        <div id="finalScores"></div>
+    </div>
+
     <script>
         let players = [];
         let currentPlayerIndex = 0;
@@ -47,12 +54,42 @@
         let question;
         let votes = {};
         let scores = {};
+        let playedQuestions = [];
+        let totalRounds = 10;
+        let currentRound = 0;
         let questions = [
-            "Wie viele Tage kann man eine Pizza noch essen, nachdem sie auf dem Boden lag?",
-            "Wie viele Dates braucht es, bis man jemanden offiziell „Schatz“ nennen kann?",
-            "Wie viele Bier muss man trinken, bevor Karaoke eine gute Idee wird?",
-            "Wie lange sollte man maximal auf eine Antwort in einem Chat warten, bevor man beleidigt ist? (in Minuten)",
-            "Wie viele Tage darf man dieselbe Unterhose tragen, bevor es sozial inakzeptabel wird?"
+            "Wie häufig gehst du am Tag auf die Toilette?",
+            "Wie viele Liegestützen kannst du machen?",
+            "Wie viele Biere sind für einen lustigen Abend perfekt?",
+            "Wie viele Filme hast du dieses Jahr bereits angesehen?",
+            "Wie viele Stunden am Tag bist du ca. auf Instagram?",
+            "Ab wie vielen Shots musst du kotzen?",
+            "Ohne nachzuschauen! Wie viele Songs hast du auf Spotify in deinen Lieblingssongs?",
+            "Wie viele Big Macs schaffst du in 2 Stunden?",
+            "Mit wie vielen Grundschülern könntest du es auf einmal in einem Kampf aufnehmen?",
+            "Wie oft hast du dich dieses Jahr verkatert zur Uni oder Arbeit geschleppt?",
+            "Wie viele Nacktbilder hast du auf deinem Handy?",
+            "Ohne nachzuschauen! Wie viele ungeöffnete Nachrichten hast du derzeit auf deinem Handy offen?",
+            "Wie viele Spitznamen existieren für dich?",
+            "Wie viele Fake Accounts hast du jemals erstellt?",
+            "Wie häufig kurbelst du ca. in der Woche?",
+            "Wie häufig bestellst du ca. Essen über Lieferdienste?",
+            "Wie häufig warst du bisher bereits außerhalb von Europa?",
+            "Wie oft trinkst du im Schnitt Alkohol in der Woche?",
+            "Mit wie vielen Jahren hast du das letzte Mal ins Bett gemacht?",
+            "Wie häufig siehst du deine Eltern ca. im Jahr?",
+            "Wie viele km schaffst du in deiner jetzigen Verfassung ca. am Stück zu laufen?",
+            "Auf wie vielen Konzerten warst du dieses Jahr?",
+            "Wie viele Minuten brauchst du ca. üblicherweise von zuhause in die Arbeit oder Uni?",
+            "Wie viel Euro bist du bereit für ein gutes Steak zu zahlen?",
+            "Wie viele Hauptstädte weltweit könntest du jetzt aufzählen?",
+            "Wie viele gute Freunde hast du?",
+            "Für wie viel Euro würdest du jetzt deine Haare pink färben?",
+            "Wie häufig warst du letztes Jahr auf dem Oktoberfest?",
+            "Wie häufig warst du dieses Jahr schon im Urlaub?",
+            "Wie viele Malle-Sänger könntest du jetzt aufzählen?",
+            "Wie viele Maß verträgst du auf dem Oktoberfest?",
+            "Mit wie viel Jahren warst du das erste Mal betrunken?"
         ];
 
         function setupPlayers() {
@@ -87,9 +124,19 @@
         }
 
         function startRound() {
+            if (currentRound >= totalRounds) {
+                endGame();
+                return;
+            }
+            currentRound++;
             currentPlayerIndex = 0;
             imposterIndex = Math.floor(Math.random() * players.length);
-            question = questions[Math.floor(Math.random() * questions.length)];
+            
+            do {
+                question = questions[Math.floor(Math.random() * questions.length)];
+            } while (playedQuestions.includes(question));
+            playedQuestions.push(question);
+
             votes = {};
             showQuestion();
         }
@@ -113,59 +160,12 @@
             }
         }
 
-        function setupVoting() {
-            let container = document.getElementById("voteOptions");
-            container.innerHTML = "";
-            players.forEach((player, index) => {
-                let button = document.createElement("button");
-                button.innerText = player;
-                button.onclick = () => vote(player);
-                container.appendChild(button);
-            });
-        }
-
-        function vote(player) {
-            votes[player] = (votes[player] || 0) + 1;
-        }
-
-        function revealImposter() {
-            document.getElementById("voteScreen").style.display = "none";
-            document.getElementById("scoreScreen").style.display = "block";
-            let imposterName = players[imposterIndex];
-            let maxVotes = Math.max(...Object.values(votes));
-            let votedOut = Object.keys(votes).find(player => votes[player] === maxVotes);
-            let container = document.getElementById("scoreboard");
-            container.innerHTML = `<p>Der Imposter war: <b>${imposterName}</b></p>`;
-
-            if (votedOut === imposterName) {
-                container.innerHTML += "<p>Der Imposter wurde enttarnt! Alle außer ihm bekommen einen Punkt.</p>";
-                players.forEach(player => { if (player !== imposterName) scores[player]++; });
-            } else {
-                container.innerHTML += "<p>Der Imposter blieb unentdeckt! Er bekommt einen Punkt.</p>";
-                scores[imposterName]++;
-            }
-
-            players.forEach(player => {
-                let div = document.createElement("div");
-                div.innerHTML = `${player}: ${scores[player]} Punkte <button onclick="addPoint('${player}')">+1</button>`;
-                container.appendChild(div);
-            });
-        }
-
-        function addPoint(player) {
-            scores[player]++;
-            revealImposter();
-        }
-
-        function nextRound() {
+        function endGame() {
             document.getElementById("scoreScreen").style.display = "none";
-            document.getElementById("gameScreen").style.display = "block";
-            startRound();
+            document.getElementById("endScreen").style.display = "block";
+            let container = document.getElementById("finalScores");
+            container.innerHTML = JSON.stringify(scores, null, 2);
         }
-
-        window.onload = function() {
-            document.getElementById("gameSetup").style.display = "block";
-        };
     </script>
 
 </body>
